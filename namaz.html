@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Namaz takibi</title>
+<style>
+:root{--bg:#eceff6;--surface:#fff;--ink:#1a2140;--mute:#5f6a8a;--line:#d6dbea;--accent:#3a4cb0;--accent-ink:#fff;--ok:#2a8a64;--miss:#b4501f;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10142a;--surface:#1a2040;--ink:#e8ebf7;--mute:#98a2c4;--line:#2d3560;--accent:#8c9cf5;--accent-ink:#0c1030;--ok:#5fd0a0;--miss:#f19a6b;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10142a;--surface:#1a2040;--ink:#e8ebf7;--mute:#98a2c4;--line:#2d3560;--accent:#8c9cf5;--accent-ink:#0c1030;--ok:#5fd0a0;--miss:#f19a6b;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:560px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0;flex:1}
+h3{margin:0 0 10px;font-size:1rem}
+.top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.gun{text-align:center;font-weight:600;margin:0 0 14px;color:var(--mute)}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.mute{color:var(--mute);font-size:.88rem}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:8px 12px}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.4;cursor:default}
+.v{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.v:last-child{border-bottom:0}
+.v strong{flex:1;min-width:80px}
+.sg{display:flex;gap:6px}
+.sg button[aria-pressed="true"].k{background:var(--ok);border-color:var(--ok);color:#fff}
+.sg button[aria-pressed="true"].m{background:var(--miss);border-color:var(--miss);color:#fff}
+.sum{display:flex;gap:10px;margin-bottom:14px}
+.sum div{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+.sum b{display:block;font-size:1.6rem;line-height:1.2}
+.sum .bor b{color:var(--miss)}
+.msg{min-height:1.5em;margin:10px 0 0;font-weight:600;color:var(--ok)}
+.kz{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.kz:last-of-type{border-bottom:0}
+.kz strong{width:64px}
+.kz .n{width:44px;font-size:1.25rem;font-weight:800;text-align:center}
+.kz label{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--mute);margin-left:auto}
+.kz input{width:64px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 6px}
+.week{display:flex;gap:8px}
+.d{flex:1;text-align:center;font-size:.78rem;color:var(--mute)}
+.d span{display:block;height:36px;border-radius:8px;margin-bottom:4px;background:var(--line);line-height:36px;font-weight:700;color:var(--ink)}
+</style>
+</head>
+<body>
+<main>
+<div class="top"><h1>Namaz takibi</h1><button id="onceki" aria-label="Önceki gün">‹</button><button id="sonraki" aria-label="Sonraki gün">›</button></div>
+<p class="gun" id="gun"></p>
+
+<div class="sum">
+<div><b id="kildim">0</b><span class="mute">bugün kılınan</span></div>
+<div class="bor"><b id="borc">0</b><span class="mute">toplam kaza borcu</span></div>
+</div>
+
+<section class="box" aria-label="Vakitler">
+<h3>Vakitler</h3>
+<div id="vakitler"></div>
+<p class="msg" id="msg" role="status"></p>
+</section>
+
+<section class="box" aria-label="Kaza namazları">
+<h3>Kaza namazları</h3>
+<p class="mute" style="margin-top:0">Kaçırdım dediğin her vakit buraya borç olarak eklenir. Kaza kıldıkça düşersin. Eskiden biriken kaza varsa sağdaki kutuya yaz.</p>
+<div id="kaza"></div>
+</section>
+
+<section class="box" aria-label="Son 7 gün">
+<h3>Son 7 gün</h3>
+<div class="week" id="hafta"></div>
+</section>
+<p class="mute">Veriler yalnızca bu tarayıcıda saklanır.</p>
+</main>
+
+<script>
+(function(){
+var KEY="namaz-takip-v1",V=["Sabah","Öğle","İkindi","Akşam","Yatsı"];
+var S={log:{},base:{},done:{}};
+try{var r=localStorage.getItem(KEY);if(r){var p=JSON.parse(r);if(p&&p.log){S=p;S.base=S.base||{};S.done=S.done||{}}}}catch(e){}
+function kaydet(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+var $=function(i){return document.getElementById(i)};
+function pad(n){return(n<10?"0":"")+n}
+function key(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+var bugun=new Date();bugun=new Date(bugun.getFullYear(),bugun.getMonth(),bugun.getDate());
+var ofs=0;
+function gun(n){var d=new Date(bugun);d.setDate(d.getDate()+n);return d}
+function missed(v){var t=0;Object.keys(S.log).forEach(function(k){if(S.log[k][v]==="m")t++});return t}
+function borc(v){return Math.max(0,(+S.base[v]||0)+missed(v)-(+S.done[v]||0))}
+function ciz(){
+var d=gun(ofs),k=key(d),l=S.log[k]||{};
+$("gun").textContent=(ofs===0?"Bugün, ":"")+d.toLocaleDateString("tr-TR",{weekday:"long",day:"numeric",month:"long"});
+$("sonraki").disabled=ofs>=0;
+var kil=V.filter(function(v){return l[v]==="k"}).length;
+$("kildim").textContent=kil+"/5";
+var tb=0;V.forEach(function(v){tb+=borc(v)});$("borc").textContent=tb;
+$("vakitler").innerHTML=V.map(function(v){return'<div class="v"><strong>'+v+'</strong><div class="sg"><button class="k" data-v="'+v+'" data-s="k" aria-pressed="'+(l[v]==="k")+'">Kıldım</button><button class="m" data-v="'+v+'" data-s="m" aria-pressed="'+(l[v]==="m")+'">Kaçırdım</button></div></div>'}).join("");
+$("kaza").innerHTML=V.map(function(v){return'<div class="kz"><strong>'+v+'</strong><span class="n">'+borc(v)+'</span><button data-kz="'+v+'"'+(borc(v)?"":" disabled")+'>Kaza kıldım</button><label>Eski borç <input type="number" min="0" inputmode="numeric" data-base="'+v+'" value="'+(+S.base[v]||0)+'" aria-label="'+v+' eski kaza borcu"></label></div>'}).join("");
+var h="";for(var i=6;i>=0;i--){var dd=gun(-i),ll=S.log[key(dd)]||{},c=V.filter(function(x){return ll[x]==="k"}).length;
+h+='<div class="d"><span style="background:'+(c?"color-mix(in srgb,var(--ok) "+(20+c*16)+"%,var(--line))":"var(--line)")+'">'+c+"</span>"+dd.toLocaleDateString("tr-TR",{weekday:"short"})+"</div>"}
+$("hafta").innerHTML=h}
+$("vakitler").addEventListener("click",function(e){var b=e.target.closest("[data-v]");if(!b)return;var k=key(gun(ofs)),v=b.getAttribute("data-v"),s=b.getAttribute("data-s");S.log[k]=S.log[k]||{};
+if(S.log[k][v]===s)delete S.log[k][v];else S.log[k][v]=s;kaydet();ciz();
+var l=S.log[k],n=V.filter(function(x){return l[x]==="k"}).length;$("msg").textContent=n===5?"Beş vakit tamam. Allah kabul etsin.":""});
+$("kaza").addEventListener("click",function(e){var b=e.target.closest("[data-kz]");if(!b)return;var v=b.getAttribute("data-kz");if(borc(v)<=0)return;S.done[v]=(+S.done[v]||0)+1;kaydet();ciz();$("msg").textContent=""});
+$("kaza").addEventListener("change",function(e){var i=e.target.closest("[data-base]");if(!i)return;var n=parseInt(i.value,10);S.base[i.getAttribute("data-base")]=n>0?n:0;kaydet();ciz()});
+$("onceki").addEventListener("click",function(){ofs--;ciz()});
+$("sonraki").addEventListener("click",function(){if(ofs<0){ofs++;ciz()}});
+ciz();
+})();
+</script>
+</body>
+</html>
