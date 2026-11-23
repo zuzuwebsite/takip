@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Harcama takibi</title>
+<style>
+:root{--bg:#edf3f0;--surface:#fff;--ink:#14261f;--mute:#5d726a;--line:#d3e0da;--accent:#0b7a5a;--accent-ink:#fff;--warn:#c2410c;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1b17;--surface:#172a24;--ink:#e5f1ec;--mute:#93aba2;--line:#294238;--accent:#4fd1a0;--accent-ink:#06150f;--warn:#f59568;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1b17;--surface:#172a24;--ink:#e5f1ec;--mute:#93aba2;--line:#294238;--accent:#4fd1a0;--accent-ink:#06150f;--warn:#f59568;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:600px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0}
+h3{margin:0 0 10px;font-size:1rem}
+.top{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.top h1{flex:1}
+.mon{font-weight:600;min-width:130px;text-align:center}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.big{font-size:2rem;font-weight:800;line-height:1.1}
+.big.over{color:var(--warn)}
+.mute{color:var(--mute);font-size:.88rem}
+.bar{height:12px;background:var(--line);border-radius:6px;overflow:hidden;margin:10px 0 6px}
+.bar i{display:block;height:100%;background:var(--accent);width:0}
+.bar.over i{background:var(--warn)}
+.kpi{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.kpi div{background:var(--bg);border-radius:8px;padding:10px}
+.kpi b{display:block;font-size:1.1rem}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:480px){.grid{grid-template-columns:1fr}}
+.full{grid-column:1/-1}
+label{display:block;font-size:.85rem;color:var(--mute);margin-bottom:3px}
+input,select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
+:is(input,select,button):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:8px 12px}
+button.p{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.row{display:flex;gap:8px;align-items:end}
+.row>div{flex:1}
+.cat{display:flex;align-items:center;gap:10px;margin:6px 0;font-size:.92rem}
+.cat span.n{width:96px;flex:none}
+.cat .b{flex:1;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.cat .b i{display:block;height:100%;background:var(--accent)}
+.cat span.v{width:84px;text-align:right;flex:none}
+.gun{margin-top:12px}
+.gun h4{margin:0 0 4px;font-size:.88rem;color:var(--mute);display:flex;justify-content:space-between}
+.e{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.e div{flex:1}
+.e small{color:var(--mute);display:block}
+.e b{white-space:nowrap}
+.e button{border:0;background:none;color:var(--mute);padding:4px 8px}
+.msg{min-height:1.4em;margin:8px 0 0;font-size:.9rem;color:var(--warn)}
+</style>
+</head>
+<body>
+<main>
+<div class="top">
+<h1>Harcama takibi</h1>
+<button id="onceki" aria-label="Önceki ay">‹</button><span class="mon" id="ayAd"></span><button id="sonraki" aria-label="Sonraki ay">›</button>
+</div>
+
+<section class="box" aria-label="Aylık özet">
+<div class="mute">Bu ay harcanan</div>
+<div class="big" id="harcanan">0</div>
+<div class="bar" id="bar"><i id="barI"></i></div>
+<div class="mute" id="barTxt"></div>
+<div class="kpi">
+<div><span class="mute">Kalan</span><b id="kalan">–</b></div>
+<div><span class="mute">Günlük kalan limit</span><b id="limit">–</b></div>
+<div><span class="mute">Günlük ortalama</span><b id="ort">–</b></div>
+<div><span class="mute">Aylık hedef</span><div class="row" style="margin-top:2px"><input id="hedef" inputmode="decimal" placeholder="Örn. 15000" aria-label="Aylık hedef (TL)"></div></div>
+</div>
+</section>
+
+<section class="box" aria-label="Harcama ekle">
+<h3>Harcama ekle</h3>
+<div class="grid">
+<div><label for="tutar">Tutar (TL)</label><input id="tutar" inputmode="decimal" placeholder="0"></div>
+<div><label for="kat">Kategori</label><select id="kat"></select></div>
+<div><label for="acik">Açıklama</label><input id="acik" maxlength="60" placeholder="İsteğe bağlı"></div>
+<div><label for="tar">Tarih</label><input id="tar" type="date"></div>
+<div class="full"><button class="p" id="ekle" style="width:100%">Harcamayı ekle</button></div>
+</div>
+<p class="msg" id="msg" role="status"></p>
+</section>
+
+<section class="box" aria-label="Kategoriler">
+<h3>Kategorilere göre</h3>
+<div id="kats"></div>
+</section>
+
+<section class="box" aria-label="Harcama listesi">
+<h3>Harcamalar</h3>
+<div id="liste"></div>
+</section>
+<p class="mute">Veriler yalnızca bu tarayıcıda saklanır.</p>
+</main>
+
+<script>
+(function(){
+var KEY="harcama-takip-v1",KAT=["Market","Yeme içme","Ulaşım","Fatura","Eğlence","Giyim","Sağlık","Diğer"];
+var S={hedef:0,items:[]};
+try{var r=localStorage.getItem(KEY);if(r){var p=JSON.parse(r);if(p&&Array.isArray(p.items)){S=p;S.hedef=+S.hedef||0}}}catch(e){}
+function kaydet(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+var $=function(i){return document.getElementById(i)};
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+var TL=new Intl.NumberFormat("tr-TR",{style:"currency",currency:"TRY",maximumFractionDigits:2});
+function para(n){return TL.format(n)}
+function sayi(s){var n=parseFloat(String(s).replace(/\s/g,"").replace(/\./g,"").replace(",","."));return isNaN(n)?NaN:n}
+function pad(n){return(n<10?"0":"")+n}
+function key(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+var simdi=new Date(),yil=simdi.getFullYear(),ay=simdi.getMonth();
+function ayKey(){return yil+"-"+pad(ay+1)}
+$("kat").innerHTML=KAT.map(function(k){return"<option>"+k+"</option>"}).join("");
+function varsayilanTarih(){var bu=simdi.getFullYear()===yil&&simdi.getMonth()===ay;$("tar").value=bu?key(simdi):yil+"-"+pad(ay+1)+"-01"}
+function ciz(){
+var ak=ayKey(),liste=S.items.filter(function(x){return x.t.indexOf(ak)===0}),top=0,kat={};
+liste.forEach(function(x){top+=x.n;kat[x.k]=(kat[x.k]||0)+x.n});
+$("ayAd").textContent=new Date(yil,ay,1).toLocaleDateString("tr-TR",{month:"long",year:"numeric"});
+$("harcanan").textContent=para(top);
+var h=S.hedef,bu=simdi.getFullYear()===yil&&simdi.getMonth()===ay,gunSay=new Date(yil,ay+1,0).getDate(),gecen=bu?simdi.getDate():gunSay;
+$("hedef").value=h?String(h).replace(".",","):"";
+var yuz=h?Math.min(100,top/h*100):0,asildi=h&&top>h;
+$("barI").style.width=yuz+"%";$("bar").className="bar"+(asildi?" over":"");$("harcanan").className="big"+(asildi?" over":"");
+$("barTxt").textContent=h?("Hedefin %"+Math.round(top/h*100)+" kadarı harcandı"):"Aylık hedef girersen ilerlemeni burada görürsün.";
+$("kalan").textContent=h?(asildi?"-"+para(top-h):para(h-top)):"–";
+if(h&&bu){var kg=gunSay-simdi.getDate()+1;$("limit").textContent=asildi?"Hedef aşıldı":para((h-top)/kg)}else $("limit").textContent="–";
+$("ort").textContent=top&&gecen?para(top/gecen):"–";
+var kk=Object.keys(kat).sort(function(a,b){return kat[b]-kat[a]});
+$("kats").innerHTML=kk.length?kk.map(function(k){return'<div class="cat"><span class="n">'+esc(k)+'</span><span class="b"><i style="width:'+Math.round(kat[k]/top*100)+'%"></i></span><span class="v">'+para(kat[k])+"</span></div>"}).join(""):'<p class="mute">Bu ay için harcama yok.</p>';
+var gun={};liste.forEach(function(x){(gun[x.t]=gun[x.t]||[]).push(x)});
+var gk=Object.keys(gun).sort().reverse();
+$("liste").innerHTML=gk.length?gk.map(function(g){var a=gun[g],t=0;a.forEach(function(x){t+=x.n});var p=g.split("-");
+return'<div class="gun"><h4><span>'+p[2]+"."+p[1]+"."+p[0]+"</span><span>"+para(t)+"</span></h4>"+a.map(function(x){return'<div class="e"><div>'+esc(x.a||x.k)+"<small>"+esc(x.k)+"</small></div><b>"+para(x.n)+'</b><button data-del="'+x.id+'" aria-label="Harcamayı sil">×</button></div>'}).join("")+"</div>"}).join(""):'<p class="mute">Henüz harcama eklemedin.</p>';
+varsayilanTarih()}
+$("ekle").addEventListener("click",function(){
+var n=sayi($("tutar").value),t=$("tar").value,m=$("msg");
+if(!(n>0)){m.textContent="Geçerli bir tutar gir.";return}
+if(!t){m.textContent="Tarih seç.";return}
+m.textContent="";
+S.items.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),n:n,k:$("kat").value,a:$("acik").value.trim(),t:t});
+kaydet();$("tutar").value="";$("acik").value="";
+var p=t.split("-");yil=+p[0];ay=+p[1]-1;ciz()});
+$("liste").addEventListener("click",function(e){var b=e.target.closest("[data-del]");if(!b)return;var id=b.getAttribute("data-del");S.items=S.items.filter(function(x){return x.id!==id});kaydet();ciz()});
+$("hedef").addEventListener("change",function(){var n=sayi($("hedef").value);S.hedef=n>0?n:0;kaydet();ciz()});
+$("onceki").addEventListener("click",function(){ay--;if(ay<0){ay=11;yil--}ciz()});
+$("sonraki").addEventListener("click",function(){ay++;if(ay>11){ay=0;yil++}ciz()});
+ciz();
+})();
+</script>
+</body>
+</html>
